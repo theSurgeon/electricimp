@@ -67,7 +67,7 @@ function getImage() {
             // FF is white in BMP and black on the display)
            imageArray[col][row]=0;
             imageArray[col][row] = (imageData[offset] >> 7 - col % 8) & 0x01 ^ 0x01;
-            server.log(imageData[offset]);
+            //server.log(imageData[offset]);
         }
         offset++;
     }
