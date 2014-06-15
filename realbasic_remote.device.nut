@@ -17,6 +17,124 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+
+class ds3231 {
+ 
+    _i2c  = null;
+    _addr = null;
+    
+    static REG_LTHB = "\x11";
+    static REG_LTLB = "\x12";
+    
+    static REG_SEC  = "\x00";
+    static REG_MIN  = "\x01";
+    static REG_HOUR = "\x02";
+    
+    static REG_WDAY = "\x03";
+    static REG_DATE = "\x04";
+    static REG_MONTH= "\x05";
+    static REG_YEAR = "\x06";
+    
+    constructor(i2c, address) 
+    {
+        _i2c  = i2c;
+        _addr = address;
+    }
+    
+    function setTime(hour,minute,second,wday,date,month,year) 
+    {
+
+     _i2c.write(_addr, REG_SEC+second); 
+     _i2c.write(_addr, REG_MIN+minute); 
+     _i2c.write(_addr, REG_HOUR+hour); 
+     
+     _i2c.write(_addr, REG_WDAY+wday);
+     _i2c.write(_addr, REG_DATE+date);
+     _i2c.write(_addr, REG_MONTH+month);
+     _i2c.write(_addr, REG_YEAR+year); 
+     
+    }
+  
+    function getDate(debug) 
+    {
+        local wday = format("%d",bcd2dec(_i2c.read(_addr, REG_WDAY, 1)[0]));
+        local date = format("%02d",bcd2dec(_i2c.read(_addr, REG_DATE, 1)[0]));
+        local month = format("%02d",bcd2dec(_i2c.read(_addr, REG_MONTH, 1)[0]));
+        local year = format("%02d",bcd2dec(_i2c.read(_addr, REG_YEAR, 1)[0]));
+    
+    if (debug){
+    
+         server.log("WdAY: "+wday);
+         server.log("DATE: "+date);
+         server.log("MONTH: "+month);
+         server.log("YEAR: "+year); 
+    
+    }
+      
+    return date+"."+month+".20"+year;
+
+    } 
+    
+    
+    function getTime(debug) 
+    {
+        local hour = format("%02d",bcd2dec(_i2c.read(_addr, REG_HOUR, 1)[0]));
+        local min = format("%02d",bcd2dec(_i2c.read(_addr, REG_MIN, 1)[0]));
+        local sec = format("%02d",bcd2dec(_i2c.read(_addr, REG_SEC, 1)[0]));
+       
+    
+    if (debug){
+    
+        server.log("HOUR: "+hour);
+         server.log("MIN: "+min);
+         server.log("SEC: "+sec);
+      
+    }
+      
+    return hour+":"+min+":"+sec;
+         
+    }
+
+  function getTemp(debug) 
+    {
+  
+  local temp;
+   
+   local tMSB = _i2c.read(_addr,REG_LTHB, 1)[0];
+   local tLSB = _i2c.read(_addr, REG_LTLB, 1)[0];
+   temp = (tMSB & 127);
+   temp += ( (tLSB >> 6) *0.25);
+   
+   if (debug){
+   server.log("TEMP: "+temp+" °C");     
+   
+   }
+   
+   
+   return temp;
+   
+        
+    }
+
+
+ // Convert Decimal to Binary Coded Decimal (BCD)
+function dec2bcd(num)
+{
+ return ((num/10 * 16) + (num % 10));
+}
+ 
+// Convert Binary Coded Decimal (BCD) to Decimal
+function bcd2dec(num)
+{
+ return ((num/16 * 10) + (num % 16));
+} 
+    
+    
+    
+}
+
+
+
 // Sleep duration in seconds
 // DISABLED BY DEFAULT - uncomment the last line to sleep
 const SLEEP_DURATION = 300;
@@ -412,7 +530,24 @@ class PCD8544_LCD {
 // End PCD8544 class
 
 
+// Configure i2c bus
+hardware.i2c12.configure(CLOCK_SPEED_400_KHZ);
+ 
+// Create ds3231 object
+RTC <- ds3231(hardware.i2c12, 0xD0);
+ 
+// Set Time
+//setTime(hour,minute,second,wday,date,month,year) [wday 1=sunday]
+//RTC.setTime("\x15","\x17","\x00","\x01","\x15","\x06","\x14");
 
+// Get Time getTime(debug) [debug true -> server.log]
+local time=RTC.getTime(false);
+
+// Get Date getDate(debug) [debug true -> server.log]
+server.log(RTC.getDate(false));
+
+// Get Temp getTemp(debug) [debug true -> server.log]
+server.log(RTC.getTemp(false)+" °C");
 // Configure a new instance of the class
 // Arguments: width, height, spiBus, litePin, rstPin, dcPin,csPin
 screen <- PCD8544_LCD(84, 48, hardware.spi257, hardware.pin1, hardware.pin2, hardware.pin8, hardware.pin9);
@@ -424,16 +559,18 @@ if (hardware.wakereason() == WAKEREASON_POWER_ON || hardware.wakereason() == WAK
     screen.command(screen.DEFAULT_CONFIG);
  //   screen.test();
     nv <- {currentText = ""};
-    screen.displayText("Electric Imp");
+    screen.displayText(time);
 }
 
 screen.command(screen.DEFAULT_CONFIG);
 
 
-// Must use bindenv() to set correct scope
-agent.on("newText", screen.displayText.bindenv(screen));
-agent.on("newFrame", screen.displayFrame.bindenv(screen));
 
+
+// Must use bindenv() to set correct scope
+
+agent.on("newFrame", screen.displayFrame.bindenv(screen));
+agent.on("newText", screen.displayText.bindenv(screen));
 agent.send("getUpdate", nv.currentText);
 
 // UNCOMMENT THE FOLLOWING LINE TO ENABLE SLEEP!
