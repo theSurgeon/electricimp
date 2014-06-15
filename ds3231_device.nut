@@ -1,5 +1,3 @@
-//// CLASS
-
 
 class ds3231 {
  
@@ -26,16 +24,7 @@ class ds3231 {
     
     function setTime(hour,minute,second,wday,date,month,year) 
     {
-     
-    //local second   ="\x50";
-     //local minute   ="\x59";
-     //local hour     ="\x23";
-     //local wday     ="\x01"; // sunday = 01
-     //local date     ="\x31";
-     //local month    ="\x12";
-     //local year     ="\x14";
-     
-     //server.log("SET SEC: "+dec2bcd(second));
+
      _i2c.write(_addr, REG_SEC+second); 
      _i2c.write(_addr, REG_MIN+minute); 
      _i2c.write(_addr, REG_HOUR+hour); 
@@ -47,7 +36,6 @@ class ds3231 {
      
     }
   
-
     function getDate(debug) 
     {
         local wday = format("%d",bcd2dec(_i2c.read(_addr, REG_WDAY, 1)[0]));
@@ -61,24 +49,16 @@ class ds3231 {
          server.log("DATE: "+date);
          server.log("MONTH: "+month);
          server.log("YEAR: "+year); 
-      
+    
     }
       
     return date+"."+month+".20"+year;
-         
-       
-     
-     
-     
+
     } 
     
     
     function getTime(debug) 
     {
-
-    
-   
-    
         local hour = format("%02d",bcd2dec(_i2c.read(_addr, REG_HOUR, 1)[0]));
         local min = format("%02d",bcd2dec(_i2c.read(_addr, REG_MIN, 1)[0]));
         local sec = format("%02d",bcd2dec(_i2c.read(_addr, REG_SEC, 1)[0]));
@@ -94,10 +74,6 @@ class ds3231 {
       
     return hour+":"+min+":"+sec;
          
-       
-     
-     
-     
     }
 
   function getTemp(debug) 
@@ -138,9 +114,7 @@ function bcd2dec(num)
     
 }
  
-///// CLASS END 
- 
- 
+
 // Configure i2c bus
 hardware.i2c12.configure(CLOCK_SPEED_400_KHZ);
  
@@ -159,3 +133,4 @@ server.log(RTC.getDate(false));
 
 // Get Temp getTemp(debug) [debug true -> server.log]
 server.log(RTC.getTemp(false)+" °C");
+
