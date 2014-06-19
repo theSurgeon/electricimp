@@ -1,0 +1,16 @@
+
+const LOG_SERVER_URL = "http://www.wildbrain.ch/preview/logVoltage.php";
+//const jsonStringA= "{\"protocol\":\"v1\",\"at\": \"now\",\"device\":\"your_device_id\",\"data\":{\"temp\":\"";
+//const jsonStringB="\"},\"checksum\":\"\"}";
+
+function postVoltage(VoltageString) {
+ 
+ //local body = jsonStringA + tempString + jsonStringB;
+ local request = http.get(LOG_SERVER_URL+"?voltage="+VoltageString, {"":""});
+
+ local resp = request.sendsync();
+
+ server.log("HTTPResponse: " + resp.statuscode + " - " + resp.body);
+}
+
+device.on("sendVoltage", postVoltage);
